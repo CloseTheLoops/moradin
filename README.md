@@ -1,5 +1,10 @@
 # Moradin
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-blue)](https://claude.com/plugins)
+[![agentskills.io](https://img.shields.io/badge/agentskills.io-compliant-green)](https://agentskills.io)
+[![Template](https://img.shields.io/badge/GitHub-template-purple)](https://github.com/CloseTheLoops/moradin/generate)
+
 > A workshop for accumulating build-taste across projects. Cross-tool dev brain.
 
 Moradin is a directory on your machine — a workshop. You open Claude Code (or Cursor, Codex, Gemini) in it. That session inherits your principles, patterns, references, lessons, and per-project state. You then use that session to **build other projects**. Moradin itself just accumulates knowledge.

@@ -79,13 +79,13 @@ def collect_stats():
         mtime = datetime.datetime.fromtimestamp(md_file.stat().st_mtime)
         age_days = (now - mtime).days
         if age_days <= 7:
-            age_buckets["fresh (≤7d)"] += 1
+            age_buckets["fresh (<=7d)"] += 1
         elif age_days <= 30:
-            age_buckets["recent (≤30d)"] += 1
+            age_buckets["recent (<=30d)"] += 1
         elif age_days <= 90:
-            age_buckets["aging (≤90d)"] += 1
+            age_buckets["aging (<=90d)"] += 1
         elif age_days <= 180:
-            age_buckets["old (≤180d)"] += 1
+            age_buckets["old (<=180d)"] += 1
         else:
             age_buckets["stale (>180d)"] += 1
 

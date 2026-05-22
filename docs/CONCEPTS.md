@@ -68,6 +68,25 @@ Projects are entirely the operator's content — gitignored from the framework r
 
 No external dependencies — all stdlib. Easy to fork, easy to vendor elsewhere.
 
+## Operator review surfaces are HTML
+
+When a script outputs something the operator has to SCAN, REVIEW, or DECIDE ON, render it as HTML — not markdown. Markdown is for storage, git diffs, grep, and LLM-readable content. HTML is for actually reading + acting.
+
+Why: a 1500-line markdown file with 100 review candidates is friction the operator won't fight through. The same content as HTML (cards + filter search + checkboxes + export-decisions button) is reviewable in 5-10 minutes.
+
+Pattern: review-emitting scripts write BOTH formats in the same function.
+
+| Output type | Format |
+|---|---|
+| Memory files (principles, patterns, references, lessons, preferences) | markdown |
+| Schema files, templates | markdown |
+| Session logs | markdown |
+| **Review queues** (proposed preferences, audit reports, retrospect output) | **HTML** (+ markdown alongside) |
+| **Stats dashboards** | **HTML** (+ JSON alongside) |
+| Design docs / explainers | HTML |
+
+Reference implementation: `scripts/extract_preferences.py` writes both `proposed_<date>.md` and `proposed_<date>.html`. The HTML has dark theme, sticky toolbar, per-card radio buttons for ACCEPT/EDIT/REJECT, and an export-to-JSON button.
+
 ## The framework vs content split
 
 This is the most important design choice. The Moradin GitHub repository ships an **empty shell**:

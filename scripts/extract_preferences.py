@@ -391,9 +391,365 @@ def load_candidates_cache(cache_path: Path) -> list[dict]:
     return json.loads(cache_path.read_text(encoding="utf-8"))
 
 
+# Topic taxonomy — used for auto-tagging
+_TOPIC_KEYWORDS = {
+    "harness": ["harness", "test", "verify", "check", "scaffold"],
+    "memory": ["memory", "remember", "recall", "kg", "knowledge", "persist"],
+    "eval": ["eval", "metric", "score", "judge", "gold", "accuracy", "audit"],
+    "llm": ["llm", "prompt", "claude", "gemini", "gpt", "model", "afc"],
+    "agent": ["agent", "mcp", "sub-agent", "multi-agent"],
+    "arch": ["architecture", "layer", "substrate", "structure"],
+    "workflow": ["plan", "rollback", "env-var", "flag", "depend", "build", "step"],
+    "tooling": ["lint", "scaffold", "tool", "script", "audit", "code"],
+}
+
+def _infer_topics(title: str, statement: str) -> list[str]:
+    """Best-effort topic tagging from title + statement keywords."""
+    text = (title + " " + statement).lower()
+    matched = []
+    for topic, kws in _TOPIC_KEYWORDS.items():
+        for kw in kws:
+            if kw in text:
+                matched.append(topic)
+                break
+    return matched or ["workflow"]  # fallback
+
+
+def _slugify(s: str) -> str:
+    """kebab-case slug."""
+    s = re.sub(r"[^a-z0-9 -]+", "", s.lower())
+    s = re.sub(r"\s+", "_", s.strip())
+    s = re.sub(r"-+", "_", s)
+    s = re.sub(r"_+", "_", s).strip("_")
+    return s or "unnamed"
+
+
+def _tokenize_for_sim(s: str) -> set:
+    """Tokenize for Jaccard similarity (lowercase alphanumeric)."""
+    # Drop very short tokens (stopword-ish noise)
+    return {t for t in re.findall(r"\w+", s.lower()) if len(t) > 2}
+
+
+def _jaccard(a: set, b: set) -> float:
+    if not a or not b:
+        return 0.0
+    return len(a & b) / len(a | b)
+
+
+def _find_similar_existing(candidate: dict, memory_root: Path, threshold: float):
+    """Returns (existing_path, similarity_score) if a similar memory file exists, else None."""
+    matches = _find_similar_existing_top_k(candidate, memory_root, k=1, min_threshold=threshold)
+    if matches:
+        return (matches[0]["path"], matches[0]["similarity"])
+    return None
+
+
+def _find_similar_existing_top_k(candidate: dict, memory_root: Path, k: int = 5,
+                                  min_threshold: float = 0.05) -> list[dict]:
+    """Returns top-k existing memory files ranked by token overlap.
+
+    Each match: {path, name, description, similarity}.
+    Used as a cheap pre-filter before LLM-judge similarity check.
+    """
+    cand_text = candidate.get("title", "") + " " + candidate.get("statement", "")
+    cand_tokens = _tokenize_for_sim(cand_text)
+    if len(cand_tokens) < 3:
+        return []
+
+    matches = []
+    for md_file in memory_root.rglob("*.md"):
+        if md_file.name.startswith("_") or md_file.name.startswith("EXAMPLE_"):
+            continue
+        try:
+            content = md_file.read_text(encoding="utf-8")[:2000]
+        except Exception:
+            continue
+        name_match = re.search(r"^name:\s*(.+)$", content, re.MULTILINE)
+        desc_match = re.search(r"^description:\s*(.+)$", content, re.MULTILINE)
+        name = name_match.group(1).strip() if name_match else md_file.stem
+        desc = desc_match.group(1).strip() if desc_match else ""
+        existing_tokens = _tokenize_for_sim(name + " " + desc)
+        if len(existing_tokens) < 3:
+            continue
+        sim = _jaccard(cand_tokens, existing_tokens)
+        if sim >= min_threshold:
+            matches.append({"path": md_file, "name": name, "description": desc, "similarity": sim})
+
+    matches.sort(key=lambda m: -m["similarity"])
+    return matches[:k]
+
+
+_LLM_JUDGE_SYSTEM = """You decide whether a CANDIDATE principle/preference is semantically duplicate of an EXISTING one. Return ONLY JSON.
+
+Strict rule: mark as duplicate ONLY if the core concept is the same, even when worded differently. Different angles on related topics (e.g. "plan before building" vs "audit before delivering") are NOT duplicates — they're distinct rules.
+
+Return: {"is_duplicate": bool, "duplicate_of": "<existing_name>" or null, "reason": "<one short sentence>"}"""
+
+
+_LLM_JUDGE_USER_TMPL = """CANDIDATE
+title: {cand_title}
+statement: {cand_statement}
+
+EXISTING memory files (top-{n} most similar by keyword overlap):
+{existing_list}
+
+Is the candidate a semantic duplicate of any existing file?"""
+
+
+def llm_judge_duplicate(candidate: dict, top_k_existing: list[dict], model: str) -> dict:
+    """LLM-judges whether candidate duplicates any of the top-k existing files.
+
+    Returns {"is_duplicate": bool, "duplicate_of": str|None, "reason": str}.
+    Falls back to is_duplicate=False on any error.
+    """
+    if not top_k_existing:
+        return {"is_duplicate": False, "duplicate_of": None, "reason": "no similar existing"}
+
+    existing_list = "\n".join(
+        f"{i + 1}. {e['name']}: {e['description']}"
+        for i, e in enumerate(top_k_existing)
+    )
+    user_msg = _LLM_JUDGE_USER_TMPL.format(
+        cand_title=candidate.get("title", ""),
+        cand_statement=candidate.get("statement", "")[:400],
+        n=len(top_k_existing),
+        existing_list=existing_list,
+    )
+    try:
+        response = call_claude(model, _LLM_JUDGE_SYSTEM, user_msg, max_tokens=256)
+        match = re.search(r"\{.*\}", response, re.DOTALL)
+        if not match:
+            return {"is_duplicate": False, "duplicate_of": None, "reason": "no JSON in response"}
+        data = json.loads(match.group(0))
+        return {
+            "is_duplicate": bool(data.get("is_duplicate", False)),
+            "duplicate_of": data.get("duplicate_of"),
+            "reason": data.get("reason", ""),
+        }
+    except Exception as e:
+        return {"is_duplicate": False, "duplicate_of": None, "reason": f"error: {e}"}
+
+
+def auto_write_memory_files(clusters: list[dict], memory_root: Path, min_confidence: float,
+                            skip_similar_threshold: float = 0.5,
+                            use_llm_judge: bool = False) -> dict:
+    """Write each cluster above confidence threshold to memory/{type}/<title>.md.
+
+    Dedup logic:
+    - Token-Jaccard pre-filter finds top-k similar existing files.
+    - If use_llm_judge: Sonnet judges whether candidate is a true semantic duplicate.
+    - Else: any Jaccard >= skip_similar_threshold causes skip.
+
+    Returns stats: {written, skipped_low_conf, skipped_similar, conflict, by_type, skipped_similar_pairs}.
+    """
+    stats = {
+        "written": 0, "skipped_low_conf": 0, "skipped_similar": 0, "conflict": 0,
+        "by_type": defaultdict(int), "skipped_similar_pairs": []
+    }
+
+    for c in clusters:
+        if c["avg_confidence"] < min_confidence:
+            stats["skipped_low_conf"] += 1
+            continue
+
+        # Find top-k similar existing files via token overlap (cheap pre-filter)
+        top_k = _find_similar_existing_top_k(c, memory_root, k=5, min_threshold=0.05)
+
+        skipped_reason = None
+        existing_path = None
+        score = 0.0
+
+        if use_llm_judge and top_k:
+            # Authoritative LLM-judge — semantic dup detection
+            verdict = llm_judge_duplicate(c, top_k, MODEL_EXTRACT)
+            if verdict["is_duplicate"]:
+                skipped_reason = "llm_judge"
+                # Find the actual file path matching duplicate_of
+                dup_name = verdict.get("duplicate_of", "")
+                for m in top_k:
+                    if m["name"] == dup_name or dup_name in str(m["path"]):
+                        existing_path = m["path"]
+                        score = m["similarity"]
+                        break
+                if existing_path is None and top_k:
+                    existing_path = top_k[0]["path"]
+                    score = top_k[0]["similarity"]
+                judge_reason = verdict.get("reason", "")
+            else:
+                judge_reason = None
+        else:
+            # Fallback to Jaccard threshold
+            if top_k and top_k[0]["similarity"] >= skip_similar_threshold:
+                skipped_reason = "jaccard"
+                existing_path = top_k[0]["path"]
+                score = top_k[0]["similarity"]
+                judge_reason = f"token overlap {score:.2f} >= {skip_similar_threshold}"
+            else:
+                judge_reason = None
+
+        if skipped_reason:
+            stats["skipped_similar"] += 1
+            stats["skipped_similar_pairs"].append({
+                "candidate_title": c.get("title", ""),
+                "candidate_statement": c.get("statement", ""),
+                "candidate_confidence": c.get("avg_confidence", 0.0),
+                "candidate_occurrences": c.get("occurrences", 0),
+                "candidate_category": c.get("category", ""),
+                "existing_path": str(existing_path.relative_to(memory_root.parent)).replace("\\", "/") if existing_path else "",
+                "similarity": round(score, 3),
+                "skip_method": skipped_reason,
+                "judge_reason": judge_reason or "",
+                "quotes": c.get("quotes", []),
+            })
+            continue
+
+        category = c.get("category", "preference")
+        # Map category → subdir
+        subdir_map = {
+            "principle": "principles",
+            "preference": "preferences",
+            "lesson": "lessons",
+            "pattern": "patterns",
+        }
+        subdir = subdir_map.get(category, "preferences")
+        target_dir = memory_root / subdir
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        slug = _slugify(c["title"])
+        target_path = target_dir / f"{slug}.md"
+
+        if target_path.exists():
+            stats["conflict"] += 1
+            # Skip — don't overwrite operator-curated content
+            continue
+
+        # Compose file content
+        topics = _infer_topics(c["title"], c["statement"])
+        applies_to = "[operator-self]" if category == "preference" else "[universal]"
+        topics_str = ", ".join(topics)
+
+        body_extra = ""
+        if c["quotes"]:
+            body_extra = "\n\n## Source quotes (from sessions)\n\n"
+            for q in c["quotes"]:
+                snippet = q.replace("\n", " ").strip()[:300]
+                body_extra += f"> {snippet}\n\n"
+
+        if category == "lesson":
+            content = f"""---
+name: {slug}
+description: {c['statement']}
+topics: [{topics_str}]
+applies_to: {applies_to}
+type: lesson
+source: derived-from-sessions
+source_count: {c['occurrences']}
+source_confidence: {c['avg_confidence']:.2f}
+date_added: {datetime.date.today().isoformat()}
+---
+
+# {c['title']}
+
+{c['statement']}
+
+## Why
+
+(Derived from sessions — fill in the incident detail when convenient.){body_extra}
+## How to apply
+
+(Fill in when convenient.)
+"""
+        else:
+            content = f"""---
+name: {slug}
+description: {c['statement']}
+topics: [{topics_str}]
+applies_to: {applies_to}
+type: {category}
+source: derived-from-sessions
+source_count: {c['occurrences']}
+source_confidence: {c['avg_confidence']:.2f}
+date_added: {datetime.date.today().isoformat()}
+---
+
+# {c['title']}
+
+{c['statement']}{body_extra}
+"""
+
+        target_path.write_text(content, encoding="utf-8")
+        stats["written"] += 1
+        stats["by_type"][subdir] += 1
+
+    return stats
+
+
 def _html_escape(text: str) -> str:
     return (text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                 .replace('"', "&quot;").replace("'", "&#39;"))
+
+
+def _write_conflicts_html(pairs: list[dict], output_path: Path) -> None:
+    """HTML report of candidates skipped because a similar memory file exists.
+
+    Operator-facing — review whether each skip was correct or whether the new
+    formulation deserves to supersede the existing one.
+    """
+    def card(p: dict, idx: int) -> str:
+        q_html = "\n".join(
+            f'<blockquote>{_html_escape(q.replace(chr(10), " ").strip()[:300])}</blockquote>'
+            for q in p.get("quotes", [])
+        )
+        return f'''
+<div class="card">
+  <div class="head">
+    <span class="idx">#{idx}</span>
+    <span class="title">{_html_escape(p['candidate_title'])}</span>
+    <span class="sim">sim {p['similarity']:.2f}</span>
+  </div>
+  <div class="row"><strong>Candidate ({p['candidate_category']}):</strong> {_html_escape(p['candidate_statement'])}</div>
+  <div class="row"><strong>Existing:</strong> <code>{_html_escape(p['existing_path'])}</code></div>
+  <div class="row"><strong>Confidence:</strong> {p['candidate_confidence']:.2f}  ·  <strong>Occurrences:</strong> {p['candidate_occurrences']}</div>
+  <div class="quotes">{q_html}</div>
+  <div class="actions">
+    <label class="opt"><input type="radio" name="d-{idx}" value="skip" checked> <span>SKIP (default)</span></label>
+    <label class="opt"><input type="radio" name="d-{idx}" value="supersede"> <span>SUPERSEDE existing</span></label>
+    <label class="opt"><input type="radio" name="d-{idx}" value="rewrite"> <span>REWRITE both</span></label>
+  </div>
+</div>'''
+
+    cards_html = "\n".join(card(p, i + 1) for i, p in enumerate(pairs))
+    generated = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+
+    html = f'''<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Moradin -- skipped similar candidates</title>
+<style>
+*{{box-sizing:border-box}}body{{margin:0 auto;max-width:1100px;padding:24px 36px 80px;font-family:-apple-system,sans-serif;background:#0a0e14;color:#d4dae3;line-height:1.5}}
+h1{{font-family:'Courier New',monospace;color:#e8a917;font-size:20px;margin:0 0 6px}}
+.stamp{{font-family:'Courier New',monospace;font-size:11px;color:#5a6577;margin-bottom:18px}}
+.lede{{background:#12171f;border-left:4px solid #f59e0b;padding:12px 16px;font-size:13px;margin-bottom:24px;border-radius:0 4px 4px 0}}
+.card{{background:#12171f;border:1px solid #1e2a3a;border-left:4px solid #f59e0b;border-radius:6px;padding:14px 18px;margin-bottom:10px}}
+.head{{display:flex;gap:10px;align-items:center;margin-bottom:8px}}
+.idx{{font-family:'Courier New',monospace;color:#5a6577;font-size:11px;min-width:32px}}
+.title{{font-family:'Courier New',monospace;color:#d4dae3;font-size:13px;font-weight:700;flex:1}}
+.sim{{font-family:'Courier New',monospace;font-size:11px;color:#f59e0b;background:rgba(245,158,11,0.15);padding:2px 8px;border-radius:3px}}
+.row{{font-size:12px;margin:4px 0;color:#d4dae3}}.row strong{{color:#06b6d4;font-family:'Courier New',monospace;font-size:11px}}
+.row code{{background:#1a2030;padding:1px 6px;border-radius:3px;font-size:11px;color:#94a3b8}}
+.quotes blockquote{{margin:4px 0;padding:5px 10px;border-left:2px solid #1e2a3a;color:#94a3b8;font-size:11px;font-style:italic}}
+.actions{{display:flex;gap:14px;margin-top:10px;padding-top:8px;border-top:1px dashed #1e2a3a;flex-wrap:wrap}}
+.opt{{display:inline-flex;gap:5px;align-items:center;font-family:'Courier New',monospace;font-size:11px;cursor:pointer;padding:3px 8px;border-radius:3px}}
+.opt:hover{{background:#1a2030}}.opt input{{accent-color:#e8a917}}
+</style></head><body>
+<h1>SKIPPED -- similar existing memory found</h1>
+<div class="stamp">Generated {generated}</div>
+<div class="lede">
+These candidates were extracted but NOT written because a memory file with similar (title+description) already exists.
+Default = SKIP (existing wins). Override only if the new formulation is meaningfully better; choose SUPERSEDE (mark old as superseded by new) or REWRITE (operator manually merges both into one).
+</div>
+{cards_html}
+</body></html>'''
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(html, encoding="utf-8")
 
 
 def write_review_html(stable: list[dict], all_clusters: list[dict], output_path: Path, stats: dict, min_count: int, min_sessions: int) -> None:
@@ -598,6 +954,14 @@ def main():
     parser.add_argument("--output", help="Output path (default: scratch/proposed_<date>.md)")
     parser.add_argument("--dry-run", action="store_true", help="Show pre-filter results only, don't call LLM")
     parser.add_argument("--from-cache", help="Skip extraction and re-cluster from cached candidates JSON")
+    parser.add_argument("--auto-accept", action="store_true",
+                        help="Skip HTML review; auto-write all candidates above --auto-confidence to memory/{type}/")
+    parser.add_argument("--auto-confidence", type=float, default=0.70,
+                        help="Min confidence for --auto-accept (default 0.70)")
+    parser.add_argument("--skip-similar-threshold", type=float, default=0.5,
+                        help="Token-Jaccard threshold for skipping similar (default 0.5; ignored if --skip-similar-llm-judge)")
+    parser.add_argument("--skip-similar-llm-judge", action="store_true",
+                        help="Use LLM-judge (Sonnet) for semantic dedup against existing memory. Adds ~$0.01/candidate.")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -626,6 +990,25 @@ def main():
             "turns_classified_signal": 0, "candidates_extracted": len(candidates),
             "clusters_formed": len(clusters),
         }
+        if args.auto_accept:
+            memory_root = Path(__file__).resolve().parent.parent / "memory"
+            print(f"Auto-accepting candidates with confidence >= {args.auto_confidence}...")
+            write_stats = auto_write_memory_files(clusters, memory_root, args.auto_confidence,
+                                                   args.skip_similar_threshold, args.skip_similar_llm_judge)
+            print(f"Wrote {write_stats['written']} files")
+            print(f"  Skipped (low confidence): {write_stats['skipped_low_conf']}")
+            print(f"  Skipped (similar exists): {write_stats['skipped_similar']}")
+            print(f"  Skipped (filename exists): {write_stats['conflict']}")
+            print(f"  By type:")
+            for t, n in write_stats["by_type"].items():
+                print(f"    {t}: {n}")
+            # Write conflicts HTML
+            if write_stats["skipped_similar"] > 0:
+                conflicts_path = Path(__file__).resolve().parent.parent / "scratch" / f"conflicts_{datetime.date.today().isoformat()}.html"
+                _write_conflicts_html(write_stats["skipped_similar_pairs"], conflicts_path)
+                print(f"  Conflicts report: {conflicts_path}")
+            return
+
         output_path = Path(args.output) if args.output else Path(__file__).resolve().parent.parent / "scratch" / f"proposed_{datetime.date.today().isoformat()}.md"
         write_review_file(stable, clusters, output_path, stats, args.min_count, args.min_sessions)
         html_path = output_path.with_suffix(".html")
@@ -721,6 +1104,20 @@ def main():
         "candidates_extracted": len(candidates),
         "clusters_formed": len(clusters),
     }
+    if args.auto_accept:
+        memory_root = Path(__file__).resolve().parent.parent / "memory"
+        print()
+        print(f"Auto-accepting candidates with confidence >= {args.auto_confidence}...")
+        write_stats = auto_write_memory_files(clusters, memory_root, args.auto_confidence)
+        print(f"Wrote {write_stats['written']} files")
+        print(f"  Skipped (low confidence): {write_stats['skipped_low_conf']}")
+        print(f"  Skipped (file exists):    {write_stats['conflict']}")
+        print(f"  By type:")
+        for t, n in write_stats["by_type"].items():
+            print(f"    {t}: {n}")
+        print(f"Cached candidates: {cache_path}")
+        return
+
     write_review_file(stable, clusters, output_path, stats, args.min_count, args.min_sessions)
     html_path = output_path.with_suffix(".html")
     write_review_html(stable, clusters, html_path, stats, args.min_count, args.min_sessions)

@@ -38,11 +38,12 @@ moradin/
   .claude-plugin/                ← Claude Code plugin manifest
   skills/                        ← 8 SKILL.md-compliant verbs
   scripts/                       ← stdlib-only Python utilities
-  memory/                        ← THE memory layer
+  memory/                        ← THE memory layer (5 content types)
     principles/                  ← universal rules
     patterns/                    ← reusable designs
     references/                  ← captured external sources (full inventory)
     lessons/                     ← incident-derived rules
+    preferences/                 ← personal taste — how you like to work
   projects/                      ← per-project state, plans, sessions, design docs
   templates/                     ← scaffolds for new files
   examples/                      ← demo content (committed)
@@ -50,7 +51,7 @@ moradin/
   docs/                          ← QUICKSTART, CONCEPTS, CONTRIBUTING, FAQ
 ```
 
-## The 8 skills
+## The 9 skills
 
 | Verb | What it does |
 |---|---|
@@ -62,6 +63,7 @@ moradin/
 | `build` | Structured build session against a target project |
 | `ship` | End-of-session: save lessons, update state |
 | `retrospect` | Review past sessions, propose promotions to patterns/principles |
+| `learn-from-sessions` | Mine accumulated Claude Code session history for implicit preferences — one-time bootstrap or periodic refresh ([see docs](docs/SESSION_MINING.md)) |
 
 ## Key design decisions
 

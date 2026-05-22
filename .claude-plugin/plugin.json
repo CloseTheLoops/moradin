@@ -1,6 +1,6 @@
 {
   "name": "moradin",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A workshop for accumulating build-taste across projects. Cross-tool dev brain (Claude Code, Cursor, Codex, Gemini) — principles, patterns, references, lessons, per-project state.",
   "author": {
     "name": "closetheloops",

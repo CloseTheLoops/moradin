@@ -1,0 +1,27 @@
+{
+  "name": "moradin",
+  "owner": {
+    "name": "closetheloops",
+    "url": "https://github.com/closetheloops"
+  },
+  "metadata": {
+    "description": "Moradin marketplace — a workshop for accumulating build-taste across projects. Cross-tool: Claude Code, Cursor, Codex, Gemini.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "moradin",
+      "source": ".",
+      "description": "Cross-tool dev brain — principles, patterns, references, lessons, per-project state. Use OPEN Claude Code in this directory; that session inherits the workshop and helps you build other projects.",
+      "version": "0.1.0",
+      "license": "MIT",
+      "homepage": "https://github.com/closetheloops/moradin",
+      "keywords": [
+        "knowledge-management",
+        "dev-workshop",
+        "memory-system",
+        "skills"
+      ]
+    }
+  ]
+}

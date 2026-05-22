@@ -1,0 +1,38 @@
+# <PROJECT_NAME> — state
+
+## What it is
+
+REPLACE — One paragraph. What the project does. Who uses it.
+
+## Where it lives
+
+- Source: `<path to project root, e.g. ~/Documents/Trading/>`
+- Repo: `<github link>`
+
+## Current architecture (snapshot)
+
+REPLACE — Bullet list of major components. Update when state changes.
+
+## Active sprint
+
+REPLACE — What's being built right now. What patterns/principles guide the work.
+
+## Tech stack
+
+REPLACE — Languages, frameworks, key dependencies.
+
+## How to run / verify
+
+REPLACE — Commands to boot the project. Test suite. Health check.
+
+## Related references
+
+- REPLACE — `memory/references/<name>.md` if external sources informed this project
+
+## Related patterns
+
+- REPLACE — `memory/patterns/<name>.md` that this project uses
+
+## Session log
+
+See `sessions/` for dated session logs from build work.

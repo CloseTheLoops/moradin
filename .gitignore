@@ -1,0 +1,49 @@
+# Moradin .gitignore — protects user content from framework remote
+
+# === User content (per-instance, never committed to framework upstream) ===
+
+# Memory: user-filled. Examples (EXAMPLE_*.md) are committed; user files are not.
+memory/principles/*.md
+memory/patterns/*.md
+memory/references/*.md
+memory/lessons/*.md
+!memory/principles/_SCHEMA.md
+!memory/patterns/_SCHEMA.md
+!memory/references/_SCHEMA.md
+!memory/lessons/_SCHEMA.md
+!memory/_SCHEMA.md
+!memory/principles/EXAMPLE_*.md
+!memory/patterns/EXAMPLE_*.md
+!memory/references/EXAMPLE_*.md
+!memory/lessons/EXAMPLE_*.md
+
+# Auto-generated indexes
+memory/_INDEX.md
+memory/*/_INDEX.md
+
+# Per-project content (entirely user's)
+projects/*
+!projects/_SCHEMA.md
+!projects/.gitkeep
+!projects/EXAMPLE_*/
+
+# Local-only files (any `.local.` suffix is per-user)
+*.local.*
+
+# Scratch / WIP
+scratch/
+
+# === Python / OS noise ===
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+Thumbs.db
+.venv/
+.env
+
+# === Editor / IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo

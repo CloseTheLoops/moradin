@@ -14,7 +14,7 @@ from pathlib import Path
 MORADIN_ROOT = Path(__file__).resolve().parent.parent
 MEMORY_ROOT = MORADIN_ROOT / "memory"
 
-SUBDIRS = ["principles", "patterns", "references", "lessons"]
+SUBDIRS = ["principles", "patterns", "references", "lessons", "preferences"]
 
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)", re.DOTALL)
 

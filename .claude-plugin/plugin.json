@@ -29,6 +29,7 @@
     "./skills/stats",
     "./skills/build",
     "./skills/ship",
-    "./skills/retrospect"
+    "./skills/retrospect",
+    "./skills/learn-from-sessions"
   ]
 }

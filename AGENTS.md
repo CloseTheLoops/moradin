@@ -20,7 +20,7 @@ files on disk. I come alive only when an agent opens me.
 4. If the operator mentions a specific project (e.g. "GodTech", "trading"), read `projects/<name>/state.md` to know its current shape. THEN read that project's own CLAUDE.md or AGENTS.md if it has one.
 5. Apply relevant principles. Reference relevant patterns. Use scripts in `scripts/` when appropriate.
 
-## The 8 skills
+## The 9 skills
 
 Each is a SKILL.md-compliant skill in `skills/<verb>/SKILL.md`. The operator invokes via `/moradin:<verb>`.
 
@@ -34,10 +34,11 @@ Each is a SKILL.md-compliant skill in `skills/<verb>/SKILL.md`. The operator inv
 | `build` | Structured build session against a target project. Read project state → apply principles + patterns → propose plan → execute → write session log |
 | `ship` | End-of-session capture. Review work. Ask for lessons learned. Save them. Update session log + project state.md |
 | `retrospect` | Review past sessions over a window. Identify recurring patterns. Propose what to promote from lessons → patterns or principles |
+| `learn-from-sessions` | Mine accumulated Claude Code session history for implicit preferences. One-time bootstrap; outputs candidates for operator review. See `docs/SESSION_MINING.md`. |
 
 ## Memory system
 
-My memory has 4 content types. Each lives in its own subdirectory under `memory/`:
+My memory has 5 content types. Each lives in its own subdirectory under `memory/`:
 
 | Type | Lives in | Purpose | Lifecycle |
 |---|---|---|---|
@@ -45,8 +46,9 @@ My memory has 4 content types. Each lives in its own subdirectory under `memory/
 | **Patterns** | `memory/patterns/` | Reusable designs. Tagged by which projects use them. Examples: "harness contract", "closed loop eval", "ralph wiggum loop" | Evolve as new use cases emerge |
 | **References** | `memory/references/` | Captured external sources. FULL inventory of notable concepts (not pre-filtered for current project). Examples: a github repo, a research paper | Refreshed periodically (audit_references.py monthly) |
 | **Lessons** | `memory/lessons/` | Incident-derived rules. Format: rule + Why (the incident) + How to apply | Append-only; never delete, only supersede |
+| **Preferences** | `memory/preferences/` | Personal taste — how I like to work. Others might disagree; that's fine. Examples: "terse responses", "no mock databases" | Evolves with operator's taste |
 
-The distinction matters: principles are universal taste. Patterns are designs I might apply. References are external knowledge I've absorbed. Lessons are rules I learned from getting it wrong.
+The distinction matters: principles are universal taste. Preferences are personal taste. Patterns are designs I might apply. References are external knowledge I've absorbed. Lessons are rules I learned from getting it wrong.
 
 ## Topic taxonomy (use these tags exactly — no synonyms)
 

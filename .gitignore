@@ -47,3 +47,11 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Preferences (user content; v0.3)
+memory/preferences/*.md
+!memory/preferences/_SCHEMA.md
+!memory/preferences/EXAMPLE_*.md
+
+# Framework-functional reference (dated tool facts, cited by skills)
+!memory/references/forge_tool_defaults.md

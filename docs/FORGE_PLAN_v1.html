@@ -1,0 +1,358 @@
+<title>Moradin v0.3 — The Forge</title>
+<style>
+  :root {
+    --bg: #16130f;
+    --surface: #1e1a14;
+    --surface-2: #241f18;
+    --border: #37301f;
+    --border-soft: #2a2419;
+    --text: #eae3d5;
+    --muted: #a2957e;
+    --faint: #6f6552;
+    --ember: #e07a3e;
+    --ember-dim: #8a4f2c;
+    --gold: #d9a441;
+    --ok: #8fae7d;
+    --mono: Consolas, "Cascadia Mono", monospace;
+    --sans: "Segoe UI", system-ui, sans-serif;
+    --serif: Cambria, Georgia, "Times New Roman", serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.65;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 56px 24px 96px; }
+  .eyebrow {
+    font-family: var(--sans); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--ember);
+  }
+  h1 {
+    font-family: var(--serif); font-size: 44px; line-height: 1.1;
+    margin: 10px 0 14px; letter-spacing: -0.01em; text-wrap: balance;
+  }
+  .thesis { font-size: 19px; color: var(--muted); margin: 0 0 18px; max-width: 62ch; }
+  .metaline {
+    font-family: var(--sans); font-size: 12.5px; color: var(--faint);
+    display: flex; gap: 18px; flex-wrap: wrap;
+    padding: 14px 0; border-top: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft);
+  }
+  .metaline b { color: var(--muted); font-weight: 600; }
+  h2 {
+    font-family: var(--serif); font-size: 26px; margin: 56px 0 6px;
+    letter-spacing: -0.005em; text-wrap: balance;
+  }
+  .sub { font-family: var(--sans); font-size: 13px; color: var(--faint); margin: 0 0 18px; max-width: 70ch; }
+  p { max-width: 66ch; margin: 14px 0; }
+  .quiet { color: var(--muted); }
+  code, .path {
+    font-family: var(--mono); font-size: 0.82em;
+    background: var(--surface-2); border: 1px solid var(--border-soft);
+    border-radius: 4px; padding: 1px 6px; color: var(--gold); white-space: nowrap;
+  }
+
+  .locks { display: flex; flex-direction: column; gap: 10px; margin: 20px 0; }
+  .lock {
+    display: flex; gap: 14px; align-items: baseline;
+    background: var(--surface); border: 1px solid var(--border-soft);
+    border-radius: 6px; padding: 12px 18px;
+  }
+  .lock .tick { color: var(--ok); font-family: var(--sans); font-weight: 700; flex: none; }
+  .lock b { font-family: var(--sans); font-size: 15px; }
+  .lock span { color: var(--muted); font-size: 15px; }
+
+  /* Design laws */
+  .laws { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 10px; margin: 20px 0; counter-reset: law; }
+  .law {
+    background: var(--surface); border: 1px solid var(--border-soft); border-radius: 6px;
+    padding: 12px 16px; counter-increment: law; font-family: var(--sans); font-size: 14px;
+  }
+  .law b { display: block; font-size: 14px; margin-bottom: 3px; }
+  .law b::before { content: counter(law) ". "; color: var(--ember); font-variant-numeric: tabular-nums; }
+  .law span { color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+
+  /* Pipeline rail */
+  .routes {
+    background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: 6px;
+    padding: 14px 18px; margin: 20px 0; font-family: var(--sans); font-size: 14px;
+  }
+  .routes b { color: var(--gold); font-family: var(--mono); font-size: 13px; }
+  .routes div { margin: 4px 0; color: var(--muted); }
+  .rail { margin: 28px 0 8px; display: flex; flex-direction: column; }
+  .stage { display: grid; grid-template-columns: 46px 1fr; gap: 0 20px; position: relative; padding-bottom: 30px; }
+  .stage:last-child { padding-bottom: 0; }
+  .stage::before {
+    content: ""; position: absolute; left: 22px; top: 46px; bottom: 4px;
+    width: 2px; background: var(--border);
+  }
+  .stage:last-child::before { display: none; }
+  .stagenum {
+    width: 46px; height: 46px; border-radius: 50%;
+    background: var(--surface); border: 2px solid var(--ember-dim);
+    color: var(--ember); font-family: var(--sans); font-weight: 700; font-size: 17px;
+    display: flex; align-items: center; justify-content: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .stage.newstage .stagenum { border-color: var(--gold); color: var(--gold); }
+  .stagehead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-top: 9px; }
+  .stagehead h3 { font-family: var(--serif); font-size: 20px; margin: 0; }
+  .chip {
+    font-family: var(--mono); font-size: 11.5px; color: var(--gold);
+    background: var(--surface-2); border: 1px solid var(--border-soft);
+    border-radius: 20px; padding: 2px 10px;
+  }
+  .chip.new { color: var(--bg); background: var(--gold); border-color: var(--gold); font-weight: 700; }
+  .stage p { margin: 8px 0; font-size: 15.5px; }
+  .stage ul { margin: 6px 0; padding-left: 20px; font-size: 15px; }
+  .stage li { margin: 4px 0; }
+  .writes { font-family: var(--sans); font-size: 12.5px; color: var(--faint); margin-top: 6px; }
+  .writes code { color: var(--muted); }
+
+  .tscroll { overflow-x: auto; margin: 20px 0; border: 1px solid var(--border-soft); border-radius: 6px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; font-family: var(--sans); }
+  th {
+    text-align: left; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--faint); font-weight: 600; padding: 10px 14px;
+    background: var(--surface-2); border-bottom: 1px solid var(--border);
+  }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border-soft); vertical-align: top; color: var(--text); }
+  tr:last-child td { border-bottom: none; }
+  td.dim { color: var(--muted); }
+  .tag {
+    display: inline-block; font-family: var(--sans); font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.1em; border-radius: 3px; padding: 2px 7px; text-transform: uppercase;
+  }
+  .tag.new    { color: var(--ember); border: 1px solid var(--ember-dim); }
+  .tag.rw     { color: var(--gold); border: 1px solid #6b5526; }
+  .tag.keep   { color: var(--ok); border: 1px solid #46543e; }
+  .tag.retire { color: var(--faint); border: 1px solid var(--border); text-decoration: line-through; }
+
+  ul.plain { padding-left: 22px; max-width: 68ch; }
+  ul.plain li { margin: 8px 0; }
+  .phases { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; counter-reset: ph; }
+  .phase {
+    background: var(--surface); border: 1px solid var(--border-soft); border-left: 3px solid var(--ember-dim);
+    border-radius: 6px; padding: 14px 18px; counter-increment: ph;
+  }
+  .phase h4 { font-family: var(--sans); font-size: 14.5px; margin: 0 0 4px; }
+  .phase h4::before { content: counter(ph) " · "; color: var(--ember); font-variant-numeric: tabular-nums; }
+  .phase p { margin: 0; font-size: 15px; color: var(--muted); }
+
+  .checkgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin: 18px 0; }
+  .checkcard {
+    background: var(--surface); border: 1px solid var(--border-soft); border-radius: 6px; padding: 14px 18px;
+  }
+  .checkcard h4 { font-family: var(--sans); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ember); margin: 0 0 8px; }
+  .checkcard ul { margin: 0; padding-left: 18px; font-size: 14px; font-family: var(--sans); color: var(--muted); }
+  .checkcard li { margin: 4px 0; }
+
+  .foot {
+    margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--border-soft);
+    font-family: var(--sans); font-size: 13px; color: var(--faint); max-width: 70ch;
+  }
+  a { color: var(--ember); }
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">Moradin v0.3 · Final plan for approval</div>
+  <h1>The Forge</h1>
+  <p class="thesis">A guided pipeline that walks anyone — including pure vibe coders — from “I have an idea” to “I shipped a product,” with the expert judgment encoded in the skills. Built on five deep-research passes and hardened by an adversarial gap-check.</p>
+  <div class="metaline">
+    <div><b>Drafted</b> 2026-08-09 · v3</div>
+    <div><b>Process</b> 5 research agents → synthesis → 17-finding gap-check</div>
+    <div><b>Canonical</b> <code>docs/forge_plan.md</code></div>
+    <div><b>Evidence</b> <code>docs/forge_research/01–05</code></div>
+  </div>
+
+  <h2>Why this can win</h2>
+  <p>The 2025–26 evidence says the niche is open. Spec Kit buried a developer in 2,577 lines of markdown for one feature (3.5&nbsp;hours of review). Kiro turned a minor bug into 16 acceptance criteria. BMAD produced a 500-page brief and claims non-dev accessibility its own users refute. Every surviving framework was forced to retreat to “right-sized process.” Nobody has shipped <b>calibrated, brevity-capped, verified</b> guidance for non-experts — that's the Forge's slot.</p>
+
+  <h2>Locked decisions</h2>
+  <div class="locks">
+    <div class="lock"><span class="tick">✓</span><div><b>State lives in the target project</b> <span>— a <code>.forge/</code> folder travels with each project.</span></div></div>
+    <div class="lock"><span class="tick">✓</span><div><b>Backlog is local-first</b> <span>— <code>backlog.md</code> now; GitHub-issues sync at launch.</span></div></div>
+    <div class="lock"><span class="tick">✓</span><div><b>Stage skills + dispatcher</b> <span>— <code>/moradin:forge</code> reads state and routes.</span></div></div>
+    <div class="lock"><span class="tick">✓</span><div><b>Forge front door, memory behind</b> <span>— no teardown.</span></div></div>
+    <div class="lock"><span class="tick">✓</span><div><b>Measure is its own stage</b> <span>— success criteria before any tool research or code.</span></div></div>
+  </div>
+
+  <h2>Nine design laws</h2>
+  <p class="sub">Distilled from the research; they override everything else in the plan. Each traces to documented failures of existing frameworks.</p>
+  <div class="laws">
+    <div class="law"><b>Right-size per task, not per project</b><span>Kiro, BMAD, and Anthropic all had to patch in a quick path. The dispatcher routes every entry.</span></div>
+    <div class="law"><b>Hard size budgets on every artifact</b><span>Spec Kit's 2,577-line feature. Every file capped; prose only where a human decision is encoded.</span></div>
+    <div class="law"><b>Checks and hooks, not prose</b><span>Agents demonstrably ignore markdown rules. Non-negotiables become hooks; every slice has a runnable check.</span></div>
+    <div class="law"><b>No summary chains</b><span>Task Master lost 80% of a PRD decomposing from summaries. Slices cite and re-read their sources.</span></div>
+    <div class="law"><b>Specs are scaffolding, not truth</b><span>The code is the product; Close reconciles files against reality, both directions.</span></div>
+    <div class="law"><b>No persona agents</b><span>BMAD's role-play: 10–15× slower. Perspectives are prompts inside a stage, never handoffs.</span></div>
+    <div class="law"><b>Context economy</b><span>Stage files load on demand; fresh session at the Decide→Build boundary, with literal plain-language instructions.</span></div>
+    <div class="law"><b>Agent never touches prod data</b><span>Replit wiped a live DB during a code freeze. Dev/prod separation from slice one; verify-after-write.</span></div>
+    <div class="law"><b>Facts that rot live in memory, not skills</b><span>Tool defaults sit in a dated, monthly-reverified reference — Highlight.io died during our own research window.</span></div>
+  </div>
+
+  <h2>The pipeline</h2>
+  <div class="routes">
+    <div><b>/moradin:forge</b> reads <code>journal.md</code> first, then routes:</div>
+    <div>one-sentence change → <b>quick path</b> (checkpoint · align · build · affected checks + secrets diff scan · tick)</div>
+    <div>“this changes the plan” → <b>amendment</b> (supersede plan sections + decisions, regenerate only affected slices)</div>
+    <div>review date passed → <b>review</b> · new product/feature → full pipeline · first run → calibrate</div>
+  </div>
+
+  <div class="rail">
+    <div class="stage">
+      <div class="stagenum">0</div>
+      <div>
+        <div class="stagehead"><h3>Calibrate</h3><span class="chip">inside /forge, first run</span></div>
+        <p>Plain-language interview → <b>Light / Medium / Full</b> profile. “I don't know what that is” counts as an answer. Profile sizes guidance depth — it never removes safety items. Re-run any time.</p>
+        <div class="writes">writes <code>.forge/profile.md</code></div>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="stagenum">1</div>
+      <div>
+        <div class="stagehead"><h3>Define</h3><span class="chip">/moradin:define</span></div>
+        <p>An interview, not a form — the Forge drafts, the operator corrects. Certainty-first: ~43% of failed products die from “no market need,” so who + problem come before any feature talk.</p>
+        <ul>
+          <li><b>Light, 6 steps (10–15 min):</b> who + problem → job story → riskiest assumption → walking skeleton (5–7 steps, each a story) → appetite + binary cut → premortem-lite.</li>
+          <li><b>Full adds:</b> user types, directional outcome before solutioning, evidence check (“how do you know this problem exists?”), acceptance criteria, non-goals, full premortem, milestones with appetites.</li>
+          <li><b>Never:</b> RICE, opportunity trees, Should/Could tiers, effort estimates.</li>
+        </ul>
+        <div class="writes">writes <code>.forge/plan.md</code> (capped 2/5 pg) · seeds <code>backlog.md</code></div>
+      </div>
+    </div>
+    <div class="stage newstage">
+      <div class="stagenum">2</div>
+      <div>
+        <div class="stagehead"><h3>Measure</h3><span class="chip new">new stage</span><span class="chip">/moradin:measure</span></div>
+        <p>Before tools or code: what does working look like, in numbers? Output is a one-page <b>Success Contract</b>:</p>
+        <ul>
+          <li><b>One metric that matters</b> — stage-labeled, with a target <i>and a kill/pivot threshold</i>; the threshold turns the number into a decision.</li>
+          <li>Max 3 supporting signals · an <b>anti-vanity list</b> (what we will NOT count) · two horizons (launch-week activation, month-3 retention/revenue).</li>
+          <li><b>The traffic question:</b> “where do the first 20 users come from, concretely?” — “nowhere yet” triggers the validation gate.</li>
+          <li><b>Validation gate:</b> no evidence or no traffic ⇒ milestone 0 is a landing-page test with a pre-build metric; pass ⇒ build, fail ⇒ pivot or clean stop.</li>
+          <li>Instrumentation named now (from the dated tool reference; Sean Ellis question as the zero-setup fallback) · review date +30d, read by the dispatcher.</li>
+        </ul>
+        <div class="writes">writes <code>.forge/measure.md</code> (1 page)</div>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="stagenum">3</div>
+      <div>
+        <div class="stagehead"><h3>Research</h3><span class="chip">/moradin:research</span></div>
+        <p>Generates its own research questions from plan + contract, confirms which matter, then runs the expert method — timeboxed by <b>door type</b> (data model and payments get real research; a swappable UI library gets minutes).</p>
+        <ul>
+          <li><b>8-check verification per option, no claim from memory:</b> live existence check (19.7% of LLM package recommendations were hallucinated) · pricing page fetched today · 24-month pricing history · maintenance signals (never stars) · adoption trend · issue responsiveness · lock-in probe with exit path · UNVERIFIED labeling.</li>
+          <li><b>Named risk category:</b> free tier + usage billing + no spend cap (Netlify $104k, Cara $96k, PlanetScale rug-pull).</li>
+          <li><b>Boring-by-default</b> — mainstream stacks are also what AI builds most reliably on; innovation tokens tracked.</li>
+        </ul>
+        <div class="writes">writes <code>.forge/research/&lt;topic&gt;.md</code> · HTML options report for review</div>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="stagenum">4</div>
+      <div>
+        <div class="stagehead"><h3>Decide</h3><span class="chip">/moradin:decide</span></div>
+        <p>Constraints elicited <i>before</i> options are shown. Then per decision: <b>exactly 3 options + 1 recommended default</b>, each with cost now and at 10×, spend-cap status, exit cost in days, and a “pick this if…” sentence. Non-dev triage on every choice: <b>accept the default / defer / explain in plain language</b>.</p>
+        <p>Each choice appends a <b>Nygard-lite record</b>: context, decision, why (tied to stated constraints), rejected options with why-nots, door type, innovation token, verified-on date, and event-based “revisit when” triggers. <code>accepted</code> is never relitigated except by explicit supersession or amendment.</p>
+        <div class="writes">writes <code>.forge/decisions.md</code> (append-only, ~15 lines/record)</div>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="stagenum">5</div>
+      <div>
+        <div class="stagehead"><h3>Build</h3><span class="chip">/moradin:build · rewritten</span></div>
+        <p>Plan + decisions become <b>vertical slices</b>, each citing its plan sections + decision IDs and defining its <b>executable check</b> up front. Per slice: checkpoint → align → build (dev data only) → run the check → tick + checkpoint.</p>
+        <ul>
+          <li><b><code>[you]</code> operator setup tasks</b> — the human-only work every framework ignores: creating accounts, pasting keys, setting spend caps in dashboards, pointing DNS. Written as plain-language walkthroughs; the agent verifies each before the dependent slice proceeds.</li>
+          <li>Scope creep → backlog, never silent expansion · API pre-flight before building around any external service · first deploy slice wires monitoring (Sentry + UptimeRobot, $0) and the contract's analytics events · hooks installed (secrets scan, prod-connection block, slice-check gate).</li>
+        </ul>
+        <div class="writes">writes <code>.forge/checklist.md</code> — the resume point</div>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="stagenum">6</div>
+      <div>
+        <div class="stagehead"><h3>Close</h3><span class="chip">/moradin:close · absorbs ship</span></div>
+        <p>Every item traces to a documented 2025 incident. Core/Extended keys to <b>release significance</b> (first public launch or PII ⇒ Extended) — never to operator profile, because the incidents all happened to Light-profile builders.</p>
+        <div class="checkgrid">
+          <div class="checkcard"><h4>Core — every ship (30–60 min)</h4>
+            <ul><li>Secrets scan over full git history — hits rotated, never deleted</li><li>Logged-out probe of every endpoint/table/bucket — expect denial</li><li>DB rules via the platform's own linter</li><li>Backup on + one real restore performed</li><li>Spend caps + billing alerts on every metered API</li><li>Monitoring receives a deliberate test error</li><li>Production smoke test of the golden path</li><li>Working contact/feedback route (also the data-deletion path)</li><li>Collects personal data? → privacy policy + terms + deletion route</li><li>Closed-loop audit: everything done or deferred with a reason</li><li>Converge: reconcile <code>.forge/</code> ↔ code, both directions</li><li>Four-question retro → lessons to Moradin memory</li></ul>
+          </div>
+          <div class="checkcard"><h4>Extended — first public launch</h4>
+            <ul><li>Rate limiting on auth + expensive endpoints</li><li>Dependency audit + unused-dep removal</li><li>TODO/mock/dead-code sweep</li><li>Legacy-data purge (old buckets, dev DBs, seeded PII)</li><li>Prompt-injection trifecta review — unconditional if any LLM feature</li><li>Adversarial code review: fresh-context subagent over the diff</li><li>Cost audit of every service signed up during build</li><li>README verified from a clean clone</li><li>Platform-trust check — verify auth yourself</li></ul>
+          </div>
+        </div>
+        <div class="writes">also writes session log + <code>projects/&lt;name&gt;/state.md</code> (keeps retrospect fed)</div>
+      </div>
+    </div>
+    <div class="stage newstage">
+      <div class="stagenum">7</div>
+      <div>
+        <div class="stagehead"><h3>Review</h3><span class="chip new">new stage</span><span class="chip">/moradin:review</span></div>
+        <p>The loop-closer — the stage that <b>consumes the Success Contract</b>. Runs when the review date passes or the operator returns. Pulls actuals from instrumentation, compares against targets and the kill threshold, and routes explicitly:</p>
+        <ul>
+          <li><b>Continue</b> — trending to target: pick the next milestone from backlog, re-enter Build.</li>
+          <li><b>Pivot</b> — threshold hit, problem still real: amendment back through Define.</li>
+          <li><b>Stop</b> — thesis dead: close cleanly, capture the lesson. A clean kill is a success of the process.</li>
+        </ul>
+        <p>Also the v1→v2 re-entry point, and it refreshes the contract for the new stage — yesterday's north star is tomorrow's vanity metric.</p>
+      </div>
+    </div>
+  </div>
+
+  <h2><code style="font-size:0.8em">.forge/</code> state — in the target project</h2>
+  <div class="tscroll"><table>
+    <tr><th>File</th><th>Written by</th><th>Holds</th><th>Cap</th></tr>
+    <tr><td><code>journal.md</code></td><td class="dim">Every stage</td><td class="dim">Current stage · last action · next action, plain language. Read FIRST by the dispatcher — the 3-week-absence resume point</td><td class="dim">3 lines</td></tr>
+    <tr><td><code>profile.md</code></td><td class="dim">Calibrate</td><td class="dim">Working style, profile level</td><td class="dim">⅓ screen</td></tr>
+    <tr><td><code>plan.md</code></td><td class="dim">Define</td><td class="dim">Who/problem, job story, riskiest assumption, skeleton, cut, milestones</td><td class="dim">2–5 pg</td></tr>
+    <tr><td><code>measure.md</code></td><td class="dim">Measure</td><td class="dim">Success Contract, traffic answer, review date</td><td class="dim">1 page</td></tr>
+    <tr><td><code>backlog.md</code></td><td class="dim">All stages</td><td class="dim">id · title · status (idea/planned/building/done/deferred)</td><td class="dim">grows</td></tr>
+    <tr><td><code>research/</code></td><td class="dim">Research</td><td class="dim">Options, verification results, sources</td><td class="dim">1 screen ea.</td></tr>
+    <tr><td><code>decisions.md</code></td><td class="dim">Decide</td><td class="dim">Nygard-lite records, append-only</td><td class="dim">~15 ln ea.</td></tr>
+    <tr><td><code>checklist.md</code></td><td class="dim">Build</td><td class="dim">Slices: source refs, executable check, <code>[you]</code> tasks, status</td><td class="dim">1 screen</td></tr>
+  </table></div>
+  <p class="quiet" style="font-family:var(--sans);font-size:13.5px">Steering layer = the target project's own <code>CLAUDE.md</code>/<code>AGENTS.md</code> (always loaded; forge creates and maintains it — no duplicate file). Hooks for the non-negotiables are installed into the target project at first Build.</p>
+
+  <h2>Changes to the Moradin repo</h2>
+  <div class="tscroll"><table>
+    <tr><th>Area</th><th>Change</th><th>Note</th></tr>
+    <tr><td><code>skills/forge</code></td><td><span class="tag new">new</span></td><td class="dim">Dispatcher: journal-first routing, quick path, amendment, calibration</td></tr>
+    <tr><td><code>define</code> <code>measure</code> <code>research</code> <code>decide</code> <code>close</code> <code>review</code></td><td><span class="tag new">new</span></td><td class="dim">Stage skills</td></tr>
+    <tr><td><code>skills/build</code></td><td><span class="tag rw">rewrite</span></td><td class="dim">Slice loop, [you] tasks, hook installation</td></tr>
+    <tr><td><code>skills/ship</code></td><td><span class="tag retire">retired</span></td><td class="dim">Session capture moves into close</td></tr>
+    <tr><td><code>capture</code> <code>recall</code> <code>audit</code> <code>stats</code> <code>retrospect</code> <code>learn-from-sessions</code></td><td><span class="tag keep">kept</span></td><td class="dim">Memory-maintenance layer; retrospect feeds on close's session logs</td></tr>
+    <tr><td><code>skills/init</code> · <code>templates/</code></td><td><span class="tag rw">update</span></td><td class="dim">Forge as front door; 7 new templates incl. journal</td></tr>
+    <tr><td><code>memory/references/forge_tool_defaults.md</code></td><td><span class="tag new">new</span></td><td class="dim">Dated tool recommendations, monthly re-verified (Law 9)</td></tr>
+    <tr><td><code>docs/forge_research/</code></td><td><span class="tag new">added</span></td><td class="dim">Evidence base 01–05, primary-source URLs</td></tr>
+    <tr><td><code>CLAUDE.md</code> <code>AGENTS.md</code> <code>README.md</code></td><td><span class="tag rw">rewrite</span></td><td class="dim">Forge identity — done last, in Phase 4</td></tr>
+  </table></div>
+
+  <h2>Build order</h2>
+  <p class="sub">Each phase ends with a dogfood pass on a real project before the next begins.</p>
+  <div class="phases">
+    <div class="phase"><h4>Foundation</h4><p>Templates (incl. journal) + dispatcher (routing, quick path, amendment) + define + measure + the tool-defaults reference. Usable immediately.</p></div>
+    <div class="phase"><h4>Research engine</h4><p>research + decide: 8-check verification, HTML options report, decision records. The most differentiated piece.</p></div>
+    <div class="phase"><h4>Build, close, review</h4><p>Rewrite build (slices, [you] tasks, hooks), create close + review, retire ship.</p></div>
+    <div class="phase"><h4>Launch polish</h4><p>Identity docs + README, GitHub-issues sync, shareable packaging with FEEDBACK.md, calibration reading preferences.</p></div>
+  </div>
+
+  <h2>Open items</h2>
+  <ul class="plain">
+    <li><b>Naming</b> — stage verbs provisional; confirm before Phase 1.</li>
+    <li><b>GitHub sync</b> — <code>backlog.md</code> ↔ issues via <code>gh</code>; truth direction on conflict. Launch-phase.</li>
+    <li><b>Distribution</b> — plugin vs copy-in zip.</li>
+    <li><b>Auto mode</b> — in v0.3 or v0.4; if shipped: never auto-merges, stops on enumerated blockers.</li>
+    <li><b>Hook portability</b> — hooks are Claude Code-native; degrade gracefully on other tools.</li>
+    <li><b>Benchmarks table</b> — honest ranges with survivorship caveats, as a memory reference.</li>
+  </ul>
+
+  <div class="foot">
+    v3 · produced by: 5 parallel deep-research agents (primary sources, verified pricing) → synthesis → adversarial gap-check (17 findings, 3 critical, all folded in — Review stage, quick-path definition, [you] setup tasks, journal.md, amendment route, hook enforcement, legal basics, the traffic question, release-significance scoping).<br><br>
+    Canonical: <code>docs/forge_plan.md</code> · Evidence: <code>docs/forge_research/01_frameworks.md</code> — <code>05_qa_launch.md</code>
+  </div>
+</div>

@@ -1,97 +1,97 @@
-# Moradin
+# Moradin — The Forge
 
+[![Version](https://img.shields.io/badge/version-0.3.0-orange)](docs/forge_plan.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-blue)](https://claude.com/plugins)
 [![agentskills.io](https://img.shields.io/badge/agentskills.io-compliant-green)](https://agentskills.io)
 [![Template](https://img.shields.io/badge/GitHub-template-purple)](https://github.com/CloseTheLoops/moradin/generate)
 
-> A workshop for accumulating build-taste across projects. Cross-tool dev brain.
+> **A guided pipeline from "I have an idea" to "I shipped a product" — with the expert judgment encoded in the process, and a memory that makes every project better than the last.**
 
-Moradin is a directory on your machine — a workshop. You open Claude Code (or Cursor, Codex, Gemini) in it. That session inherits your principles, patterns, references, lessons, and per-project state. You then use that session to **build other projects**. Moradin itself just accumulates knowledge.
+You open your AI coding agent (Claude Code, Cursor, Codex, Gemini, Hermes) in this directory, say what you want to build, and type `/moradin:forge`. The pipeline takes it from there.
 
-It is **not** a running agent. No port, no scheduler, no daemon. Just markdown files + Python scripts. Dormant when you're not using it. Comes alive when an agent opens the directory.
+```mermaid
+flowchart LR
+    F["/moradin:forge<br/><i>routes every entry</i>"] --> D[define]
+    D --> M[measure]
+    M --> R[research]
+    R --> DE[decide]
+    DE --> B[build]
+    B --> C[close]
+    C --> RV[review]
+    RV -->|continue| B
+    RV -->|pivot| D
+    F -.->|one-sentence fix| Q[quick path]
+    F -.->|changed my mind| A[amendment] -.-> D
+```
+
+> **Heads up:** Moradin is *not* a running agent and *not* a website. No port, no server, no account. Markdown files and a few stdlib Python scripts, alive only while your agent has them open. Every project you build carries its own `.forge/` state folder — portable, readable without Moradin at all.
+
+## What makes it different
+
+**It calibrates to you, per task.** A first-run interview sets how much process you actually want (Light/Medium/Full) — and one-sentence fixes always take the quick path. Nobody abandons an 18-step ritual here, because you never get one you didn't ask for.
+
+**You agree on the numbers before writing code.** The measure stage produces a Success Contract — one metric, a target, and a *kill line* — confirmed on a clickable page. A month later, the review stage actually reads it and says continue, pivot, or stop. A clean kill is the process working.
+
+**Research is verified, not vibed.** Every recommended tool passes 9 checks against live sources *today*: the package exists, the pricing page says what we claim, a real API call confirmed the data's shape, the free tier can't silently become a $100k bill.
+
+**Decisions are clicked, then locked.** Three options per decision with a recommended default, exported from a page. Each choice becomes a record with the why-nots and an event trigger for revisiting. Accepted decisions are never re-argued — only superseded.
+
+**Builds are checked, closes are evidence-based.** Vertical slices, each proven by a check that actually runs. The close stage sweeps what really sinks vibe-coded products: secrets in git history, endpoints open to logged-out strangers, backups nobody ever restored, bills nobody capped.
 
 ## Quickstart
 
 ```bash
 # Use the GitHub template button to create your private instance, then:
-git clone https://github.com/<your-username>/<your-moradin-fork>.git ~/Documents/moradin
+git clone https://github.com/<your-username>/<your-moradin>.git ~/Documents/moradin
 cd ~/Documents/moradin
-claude   # or `cursor .` or whichever agent you use
+claude          # or cursor . — any agent that reads AGENTS.md
 ```
 
-In your first session:
+```
+/moradin:init     # one-time workshop setup
+/moradin:forge    # name a project folder or a brand-new idea — it routes you from there
+```
 
-```
-/moradin:init                       # set up workshop, optionally create first project slot
-/moradin:capture <url>              # capture an external source
-/moradin:recall "what do I know about X?"   # search memory
-/moradin:build <project> <task>     # structured build session
-/moradin:ship                       # end-of-session, save lessons
-```
+Projects are built in **sibling folders** (`~/Documents/my-app`, next to Moradin) — never inside it. Each carries its own `.forge/` state; `/moradin:forge` reads a 3-line journal and always knows where you left off, even three weeks later.
+
+## The memory layer
+
+Under `memory/`: **principles · patterns · references · lessons · preferences**. The pipeline consults it going in (research cites dated tool references; calibration pre-fills from your preferences) and feeds it coming out (every close writes lessons from real incidents). Maintenance verbs: `capture`, `recall`, `audit`, `stats`, `retrospect`, `learn-from-sessions`. This layer is what makes *your* Moradin yours.
+
+## Documentation
+
+| Read this | When |
+|---|---|
+| [QUICKSTART](docs/QUICKSTART.md) | Setting up in 5 minutes |
+| [CONCEPTS](docs/CONCEPTS.md) | Understanding the layers |
+| [The forge plan](docs/forge_plan.md) | Why the pipeline is shaped this way |
+| [Evidence base](docs/forge_research/) | The research behind every design law |
+| [SESSION_MINING](docs/SESSION_MINING.md) | Bootstrapping preferences from session history |
+| [CONTRIBUTING](docs/CONTRIBUTING.md) · [FAQ](docs/FAQ.md) | Contributing · common questions |
 
 ## What's inside
 
 ```
 moradin/
-  AGENTS.md / CLAUDE.md          ← workshop brain (loaded every session)
-  .claude-plugin/                ← Claude Code plugin manifest
-  skills/                        ← 8 SKILL.md-compliant verbs
-  scripts/                       ← stdlib-only Python utilities
-  memory/                        ← THE memory layer (5 content types)
-    principles/                  ← universal rules
-    patterns/                    ← reusable designs
-    references/                  ← captured external sources (full inventory)
-    lessons/                     ← incident-derived rules
-    preferences/                 ← personal taste — how you like to work
-  projects/                      ← per-project state, plans, sessions, design docs
-  templates/                     ← scaffolds for new files
-  examples/                      ← demo content (committed)
-  plugins.md                     ← recommended companion plugins
-  docs/                          ← QUICKSTART, CONCEPTS, CONTRIBUTING, FAQ
+  AGENTS.md / CLAUDE.md   ← identity + design laws (loaded every session)
+  skills/                 ← 15 SKILL.md verbs: 8 pipeline + 7 maintenance
+  memory/                 ← the five content types (yours; gitignored from the framework)
+  templates/              ← .forge/ state + memory file scaffolds
+  scripts/                ← stdlib-only Python (search, audit, indexes)
+  docs/                   ← guides + the plan + its evidence
 ```
-
-## The 9 skills
-
-| Verb | What it does |
-|---|---|
-| `init` | Initialize a fresh workshop |
-| `capture` | Capture an external source as a reference (full unfiltered concept inventory) |
-| `recall` | Search memory + synthesize an answer with citations |
-| `audit` | Lint memory: stale, missing fields, bad tags, orphans |
-| `stats` | Counts + coverage report |
-| `build` | Structured build session against a target project |
-| `ship` | End-of-session: save lessons, update state |
-| `retrospect` | Review past sessions, propose promotions to patterns/principles |
-| `learn-from-sessions` | Mine accumulated Claude Code session history for implicit preferences — one-time bootstrap or periodic refresh ([see docs](docs/SESSION_MINING.md)) |
-
-## Key design decisions
-
-- **Framework vs content split.** The repository ships an empty shell + tools + workflows. Each user fills it with their own content. Their `memory/` is gitignored from the framework remote.
-- **Capture full inventory, distill per-project.** References capture EVERYTHING notable from a source, not pre-filtered. Patterns extract project-specific designs later.
-- **Topic taxonomy is small + stable.** 8 tags (harness, memory, eval, llm, agent, arch, workflow, tooling). Resist adding more.
-- **Cross-tool.** Uses `AGENTS.md` (Linux Foundation standard) as source of truth, with `CLAUDE.md` as a copy/symlink. Works in Claude Code, Cursor, Codex, Gemini.
-- **Standards-compliant.** Skills use the [agentskills.io](https://agentskills.io) `SKILL.md` format. Plugin manifest follows Anthropic's spec.
-- **No attribution in framework identity.** Patterns are absorbed and become ours. Industry-standard names (Ralph Wiggum loop, etc.) are fine as filenames.
 
 ## Updating from upstream
 
-When the Moradin framework updates, pull changes without losing your personal content:
-
 ```bash
-./scripts/update.sh
+./scripts/update.sh   # merges framework changes; your memory/ and projects/ stay yours
 ```
 
-This merges upstream framework changes via `-X ours` so your `memory/` and `projects/` stay intact.
+## Feedback
+
+Tried it? [FEEDBACK.md](FEEDBACK.md) has the questions we actually want answered — bluntness welcome.
 
 ## License
 
 MIT — see `LICENSE`.
-
-## Documentation
-
-- [QUICKSTART](docs/QUICKSTART.md) — set up in 5 minutes
-- [CONCEPTS](docs/CONCEPTS.md) — the 5 layers explained
-- [CONTRIBUTING](docs/CONTRIBUTING.md) — how to add skills, file PRs
-- [FAQ](docs/FAQ.md) — common questions
-- [plugins.md](plugins.md) — recommended companion plugins

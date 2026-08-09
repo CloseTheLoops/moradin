@@ -1,7 +1,7 @@
 {
   "name": "moradin",
-  "version": "0.2.0",
-  "description": "A workshop for accumulating build-taste across projects. Cross-tool dev brain (Claude Code, Cursor, Codex, Gemini) — principles, patterns, references, lessons, per-project state.",
+  "version": "0.3.0",
+  "description": "The Forge: a guided pipeline from idea to shipped product — calibrated process, verified research, clickable decisions, checked builds, honest kill lines — plus a cross-project memory that compounds. Cross-tool (Claude Code, Cursor, Codex, Gemini, Hermes).",
   "author": {
     "name": "closetheloops",
     "url": "https://github.com/closetheloops"
@@ -22,13 +22,19 @@
     "memory-system"
   ],
   "skills": [
+    "./skills/forge",
+    "./skills/define",
+    "./skills/measure",
+    "./skills/research",
+    "./skills/decide",
+    "./skills/build",
+    "./skills/close",
+    "./skills/review",
     "./skills/init",
     "./skills/capture",
     "./skills/recall",
     "./skills/audit",
     "./skills/stats",
-    "./skills/build",
-    "./skills/ship",
     "./skills/retrospect",
     "./skills/learn-from-sessions"
   ]

@@ -27,7 +27,9 @@ The operator just cloned the template (or used "Use this template" on GitHub). T
    - "Want to capture your first principle? (universal rules that apply to any project)"
    - If yes, walk through writing one to `memory/principles/` using `templates/principle.template.md`.
 
-5. **Summarize what's set up.** List the directories, the first project slot if created, the first principle if any.
+5. **Point them at the front door.** Explain in two sentences: "The main way to use Moradin is `/moradin:forge` — open a session, name a project folder or a brand-new idea, and it guides you from there, start to finish. Everything else (capture, recall, audit) is the memory layer that makes each project smarter than the last."
+
+6. **Summarize what's set up.** List the directories, the first project slot if created, the first principle if any — and end with the `/moradin:forge` pointer.
 
 ## Don't
 
